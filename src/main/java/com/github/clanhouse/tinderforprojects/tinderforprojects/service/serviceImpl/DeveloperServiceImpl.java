@@ -3,7 +3,8 @@ package com.github.clanhouse.tinderforprojects.tinderforprojects.service.service
 import com.github.clanhouse.tinderforprojects.tinderforprojects.dto.mapper.DeveloperMapper;
 import com.github.clanhouse.tinderforprojects.tinderforprojects.dto.model.developer.DeveloperDTO;
 import com.github.clanhouse.tinderforprojects.tinderforprojects.dto.model.likedProject.ProjectToLikedProjectDTO;
-import com.github.clanhouse.tinderforprojects.tinderforprojects.exception.ResourceNotFoundException;
+import com.github.clanhouse.tinderforprojects.tinderforprojects.exception.ControllerError;
+import com.github.clanhouse.tinderforprojects.tinderforprojects.exception.ControllerException;
 import com.github.clanhouse.tinderforprojects.tinderforprojects.repository.DeveloperRepository;
 import com.github.clanhouse.tinderforprojects.tinderforprojects.repository.TableToMatchRepository;
 import com.github.clanhouse.tinderforprojects.tinderforprojects.service.DeveloperService;
@@ -17,15 +18,18 @@ import java.util.List;
 public class DeveloperServiceImpl implements DeveloperService {
 
     private final DeveloperRepository developerRepository;
-    private final TableToMatchRepository tableToMatchRepository;
     private final DeveloperMapper developerMapper;
+    private final TableToMatchRepository tableToMatchRepository;
 
     @Override
-    public DeveloperDTO create(DeveloperDTO developerDTO) {
-        developerDTO.setId(developerRepository.save(developerMapper.toDeveloper(developerDTO)).getId());
-        return developerDTO;
+    public List<DeveloperDTO> findAll() {
+        List<DeveloperDTO> developers = developerMapper.toDeveloperDTOs(developerRepository.findAll());
+        if(developers.isEmpty()) throw new ControllerException(ControllerError.EMPTY);
+        for(DeveloperDTO developerDTO : developers){
+            developerDTO.setLikedProjects(developerMapper.toProjectDTOs(tableToMatchRepository.getAllLikedProjectsByDevId(developerDTO.getId())));
+        }
+        return developers;
     }
-
 
     @Override
     public DeveloperDTO findById(Integer id) {
@@ -35,7 +39,7 @@ public class DeveloperServiceImpl implements DeveloperService {
             developerDTO.setLikedProjects(likedProjectDTOs);
             return developerDTO;
         }else{
-            throw new ResourceNotFoundException("Developer not found");
+            throw new ControllerException(ControllerError.NOT_FOUND);
         }
     }
 
@@ -45,18 +49,16 @@ public class DeveloperServiceImpl implements DeveloperService {
     }
 
     @Override
-    public List<DeveloperDTO> findAll() {
-        List<DeveloperDTO> developerDTOS = developerMapper.toDeveloperDTOs(developerRepository.findAll());
-        for(DeveloperDTO developerDTO : developerDTOS){
-            developerDTO.setLikedProjects(developerMapper.toProjectDTOs(tableToMatchRepository.getAllLikedProjectsByDevId(developerDTO.getId())));
-        }
-        return developerDTOS;
+    public DeveloperDTO create(DeveloperDTO developerDTO) {
+        return developerMapper.toDeveloperDTO(developerRepository.save(developerMapper.toDeveloper(developerDTO)));
     }
 
-    public boolean isExistById(Integer id){
-        return developerRepository.findById(id).isPresent();
+    @Override
+    public DeveloperDTO update(DeveloperDTO developerDTO) {
+        DeveloperDTO developer = developerMapper.toDeveloperDTO(developerRepository.findById(developerDTO.getId())
+                .orElseThrow(() -> new ControllerException(ControllerError.NOT_FOUND)));
+        return developerMapper.toDeveloperDTO(developerRepository.save(developerMapper.toDeveloper(developer)));
     }
-
 
 
 }
