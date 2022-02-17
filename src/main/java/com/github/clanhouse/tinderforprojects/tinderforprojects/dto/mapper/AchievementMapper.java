@@ -11,10 +11,12 @@ import java.util.List;
 public interface AchievementMapper {
 
     AchievementDTO toAchievementDTO(Achievement achievement);
+
     List<AchievementDTO> toAchievementDTOs(List<Achievement> achievements);
 
     @InheritInverseConfiguration(name = "toAchievementDTO")
     Achievement toAchievement(AchievementDTO achievementDTO);
+
 
     @InheritInverseConfiguration(name = "toAchievementDTOs")
     List<Achievement> toAchievements(List<AchievementDTO> achievementsDTO);
